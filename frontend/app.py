@@ -1,7 +1,5 @@
 import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-import pickle
+import requests
 
 # =========================
 # PAGE CONFIG
@@ -13,17 +11,6 @@ st.set_page_config(
     layout="wide"
 )
 
-
-# =========================
-# Load Model Files
-# =========================
-
-model = pickle.load(open("models/churn_model.pkl", "rb"))
-
-scaler = pickle.load(open("models/scaler.pkl", "rb"))
-
-features = pickle.load(open("models/features.pkl", "rb"))
-
 # =========================
 # SIDEBAR
 # =========================
@@ -34,11 +21,10 @@ st.sidebar.write("""
 - Machine Learning Project
 - Algorithm: Random Forest
 - Frontend: Streamlit
+- Backend: FastAPI
 - Language: Python
 - Goal: Predict Customer Churn
 """)
-
-
 
 # =========================
 # Streamlit UI
@@ -131,58 +117,52 @@ st.markdown("")
 
 if st.button("Predict Churn"):
 
-    input_data = pd.DataFrame([{
+    data = {
+
         "gender": gender,
+
         "SeniorCitizen": senior,
+
         "Partner": partner,
+
         "Dependents": dependents,
+
         "tenure": tenure,
+
         "MonthlyCharges": monthly_charges,
+
         "TotalCharges": total_charges,
+
         "Contract": contract
-    }])
+    }
 
-    # Add missing columns
-    for col in features:
-        if col not in input_data.columns:
-            input_data[col] = 0
+    try:
 
-    # Correct column order
-    input_data = input_data[features]
+        response = requests.post(
+            "http://127.0.0.1:8000/predict",
+            json=data
+        )
 
-    # Scale
-    input_scaled = scaler.transform(input_data)
+        result = response.json()
 
-    # Prediction
-    prediction = model.predict(input_scaled)
+        st.markdown("---")
 
-    probability = model.predict_proba(input_scaled)
+        if result["prediction"] == "Churn":
 
-    st.markdown("---")
+            st.error(
+                f"⚠️ Customer Likely to Churn "
+                f"({result['confidence']}% confidence)"
+            )
 
-    # Output
-    if prediction[0] == 1:
+        else:
+
+            st.success(
+                f"✅ Customer Will Stay "
+                f"({result['confidence']}% confidence)"
+            )
+
+    except:
 
         st.error(
-            f"⚠️ Customer Likely to Churn "
-            f"({probability[0][1] * 100:.2f}% confidence)"
+            "❌ FastAPI Backend Not Running"
         )
-
-    else:
-
-        st.success(
-            f"✅ Customer Will Stay "
-            f"({probability[0][0] * 100:.2f}% confidence)"
-        )
-
-        st.subheader("Customer Churn Distribution")
-
-        labels = ["Stayed", "Churned"]
-
-        values = [5174, 1869]
-
-        fig, ax = plt.subplots()
-
-        ax.pie(values, labels=labels, autopct="%1.1f%%")
-
-        st.pyplot(fig)
