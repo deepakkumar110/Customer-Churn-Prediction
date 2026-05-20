@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from backend.database import conn, cursor
-
 import pickle
 import pandas as pd
 
@@ -10,9 +9,7 @@ import pandas as pd
 # =========================
 
 model = pickle.load(open("models/churn_model.pkl", "rb"))
-
 scaler = pickle.load(open("models/scaler.pkl", "rb"))
-
 features = pickle.load(open("models/features.pkl", "rb"))
 
 # =========================
@@ -20,13 +17,11 @@ features = pickle.load(open("models/features.pkl", "rb"))
 # =========================
 
 app = FastAPI()
-
 # =========================
 # Input Schema
 # =========================
 
 class CustomerData(BaseModel):
-
     gender: int
     SeniorCitizen: int
     Partner: int
@@ -35,25 +30,20 @@ class CustomerData(BaseModel):
     MonthlyCharges: float
     TotalCharges: float
     Contract: int
-
 # =========================
 # Home Route
 # =========================
-
 @app.get("/")
 def home():
-
     return {
         "message": "Customer Churn Prediction API Running"
     }
-
 # =========================
 # Prediction Route
 # =========================
 
 @app.post("/predict")
 def predict(data: CustomerData):
-
     input_data = pd.DataFrame([data.dict()])
 
     # Add missing columns
@@ -69,16 +59,12 @@ def predict(data: CustomerData):
 
     # Prediction
     prediction = model.predict(input_scaled)
-
     probability = model.predict_proba(input_scaled)
-
     result = "Churn" if prediction[0] == 1 else "Stay"
-
     confidence = float(max(probability[0]) * 100)
     # =========================
     # Save Prediction to MySQL
     # =========================
-
     query = """
     INSERT INTO predictions (
         gender,
@@ -94,7 +80,6 @@ def predict(data: CustomerData):
     )
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
-
     values = (
         "Male" if data.gender == 1 else "Female",
         data.SeniorCitizen,
@@ -108,10 +93,10 @@ def predict(data: CustomerData):
         confidence
     )
 
-    cursor.execute(query, values)
+    if conn and cursor:
+        cursor.execute(query, values)
 
-    conn.commit()
-
+        conn.commit()
     return {
         "prediction": result,
         "confidence": round(confidence, 2)
