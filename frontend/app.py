@@ -22,12 +22,13 @@ st.sidebar.write("""
 - Algorithm: Random Forest
 - Frontend: Streamlit
 - Backend: FastAPI
+- Deployment: Render + Streamlit Cloud
 - Language: Python
 - Goal: Predict Customer Churn
 """)
 
 # =========================
-# Streamlit UI
+# TITLE
 # =========================
 
 st.title("📊 Customer Churn Prediction System")
@@ -39,7 +40,7 @@ st.write(
 st.markdown("---")
 
 # =========================
-# User Inputs
+# USER INPUTS
 # =========================
 
 col1, col2 = st.columns(2)
@@ -75,11 +76,13 @@ with col2:
     )
 
     monthly_charges = st.number_input(
-        "Monthly Charges"
+        "Monthly Charges",
+        min_value=0.0
     )
 
     total_charges = st.number_input(
-        "Total Charges"
+        "Total Charges",
+        min_value=0.0
     )
 
     contract = st.selectbox(
@@ -92,7 +95,7 @@ with col2:
     )
 
 # =========================
-# Encoding Inputs
+# ENCODING
 # =========================
 
 gender = 1 if gender == "Male" else 0
@@ -110,10 +113,8 @@ contract_map = {
 contract = contract_map[contract]
 
 # =========================
-# Prediction Button
+# PREDICTION BUTTON
 # =========================
-
-st.markdown("")
 
 if st.button("Predict Churn"):
 
@@ -139,7 +140,7 @@ if st.button("Predict Churn"):
     try:
 
         response = requests.post(
-            "http://127.0.0.1:8000/predict",
+            "https://customer-churn-prediction-3-8pcs.onrender.com/predict",
             json=data
         )
 
